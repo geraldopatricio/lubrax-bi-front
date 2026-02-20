@@ -41,46 +41,59 @@ const togglePassword = () => showPassword.value = !showPassword.value;
 const toggleRegPassword = () => showRegPassword.value = !showRegPassword.value;
 
 // === LÓGICA DE LOGIN ===
+// === LÓGICA DE LOGIN ===
 const handleLogin = async () => {
   toastMessage.value = '';
   isLoading.value = true;
 
+  // Credenciais "escondidas" (em Base64 para não ficarem em texto plano)
+  // lubrax@gmail.com -> bHVicmF4QGdtYWlsLmNvbQ==
+  // Lubrax@2026 -> THVicmF4QDIwMjY=
+  const mE = atob('bHVicmF4QGdtYWlsLmNvbQ==');
+  const mP = atob('THVicmF4QDIwMjY=');
+
   try {
-    // 1. Faz a chamada para o SEU novo backend
+    // VERIFICAÇÃO FRONTEND (Login Mestre)
+    if (email.value === mE && password.value === mP) {
+      // Simula um login bem sucedido sem bater no banco de dados
+      localStorage.setItem('authToken', 'master-access-token-bypass');
+      localStorage.setItem('userToken', 'master-user-info');
+      
+      showToast('Login Administrativo realizado!', 'success');
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+      return; // Interrompe a execução aqui para não chamar o fetch abaixo
+    }
+
+    // --- SE NÃO FOR O LOGIN MESTRE, SEGUE O FLUXO NORMAL DA API ---
     const response = await fetch(`${import.meta.env.VITE_API_URL}/cognito/login`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'x-api-key': 'ASDFG!#$' 
-        //'x-api-key': import.meta.env.VITE_API_KEY // Envia o token de segurança exigido pelo seu middleware
       },
       body: JSON.stringify({ 
         email: email.value, 
-        password: password.value // Note que agora o campo é 'password' (como definimos no node)
+        password: password.value 
       })
     });
 
     const data = await response.json();
 
-    // 2. Verifica se a resposta foi erro
     if (!response.ok) {
       throw new Error(data.error || 'Falha na autenticação');
     }
 
-    // 3. Salva o AccessToken retornado pelo Cognito no localStorage
-    // O Cognito retorna o campo como "AccessToken"
     localStorage.setItem('authToken', data.AccessToken);
-    
-    // 4. Se quiser salvar os dados do usuário que vem no IdToken (opcional)
     if (data.IdToken) {
        localStorage.setItem('userToken', data.IdToken);
     }
 
-    // 5. Redireciona para o dashboard
     router.push('/'); 
 
   } catch (error) {
-    // Mostra o erro real (ex: "E-mail ou senha inválidos" ou "User not found")
     showToast(error.message, 'error');
   } finally {
     isLoading.value = false;
@@ -178,7 +191,7 @@ const handleForgotPassword = async () => {
             <img src="/log.png" alt="Logo" style="width: 62px; height: 62px;">
           </div>
           <h4 class="fw-bold text-dark">Área de Acesso</h4>
-          <p class="text-muted small">GERENCIADOR LUBCONSULTA</p>
+          <p class="text-muted small">BUSINESS INTELLIGENCE - LUBRAX</p>
         </div>
 
         <form @submit.prevent="handleLogin">
