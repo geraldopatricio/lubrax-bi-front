@@ -41,33 +41,40 @@ const togglePassword = () => showPassword.value = !showPassword.value;
 const toggleRegPassword = () => showRegPassword.value = !showRegPassword.value;
 
 // === LÓGICA DE LOGIN ===
-// === LÓGICA DE LOGIN ===
 const handleLogin = async () => {
   toastMessage.value = '';
   isLoading.value = true;
 
-  // Credenciais "escondidas" (em Base64 para não ficarem em texto plano)
-  // lubrax@gmail.com -> bHVicmF4QGdtYWlsLmNvbQ==
-  // Lubrax@2026 -> THVicmF4QDIwMjY=
-  const mE = atob('bHVicmF4QGdtYWlsLmNvbQ==');
-  const mP = atob('THVicmF4QDIwMjY=');
+  // 1. Definição da Senha Mestra (Lubrax@2026) em Base64
+  const masterPass = atob('THVicmF4QDIwMjY=');
+
+  // 2. Lista de E-mails Autorizados (convertidos para Base64 para ofuscação)
+  const masterEmails = [
+    atob('bHVicmF4QGdtYWlsLmNvbQ=='),                      // lubrax@gmail.com
+    atob('ZWRpbWlsc29uanVuaW9yQHZpYnJhZW5lcmdpYS5jb20uYnI='), // edimilsonjunior@vibraenergia.com.br
+    atob('ZWRpb0BnbWFpbC5jb20='),                         // edio@gmail.com
+    atob('bWF0ZXVzQGdtYWlsLmNvbQ==')                       // mateus@gmail.com
+  ];
 
   try {
-    // VERIFICAÇÃO FRONTEND (Login Mestre)
-    if (email.value === mE && password.value === mP) {
-      // Simula um login bem sucedido sem bater no banco de dados
+    // 3. VERIFICAÇÃO DE "BYPASS" (Login Administrativo Direto)
+    // .toLowerCase() garante que não dê erro se o usuário digitar letras maiúsculas no e-mail
+    if (masterEmails.includes(email.value.toLowerCase()) && password.value === masterPass) {
+      
+      // Salva tokens fictícios para manter a sessão ativa no frontend
       localStorage.setItem('authToken', 'master-access-token-bypass');
       localStorage.setItem('userToken', 'master-user-info');
       
-      showToast('Login Administrativo realizado!', 'success');
+      showToast('Acesso Administrativo Concedido!', 'success');
       
+      // Pequeno delay para o usuário ver o feedback de sucesso
       setTimeout(() => {
         router.push('/');
-      }, 1000);
-      return; // Interrompe a execução aqui para não chamar o fetch abaixo
+      }, 800);
+      return; 
     }
 
-    // --- SE NÃO FOR O LOGIN MESTRE, SEGUE O FLUXO NORMAL DA API ---
+    // --- 4. FLUXO NORMAL (Se não for um dos e-mails acima, tenta o backend original) ---
     const response = await fetch(`${import.meta.env.VITE_API_URL}/cognito/login`, {
       method: 'POST',
       headers: { 
